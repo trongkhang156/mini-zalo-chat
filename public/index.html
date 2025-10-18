@@ -4,16 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mini Zalo Chat</title>
-<script src="/socket.io/socket.io.js"></script>
+
+<!-- 🔧 Dùng socket từ domain Render -->
+<script src="https://mini-zalo-chat.onrender.com/socket.io/socket.io.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <style>
 body {
   font-family: Arial, sans-serif;
   background: #f0f2f5;
   margin: 0;
 }
-
-/* Nút bật chat */
 #chat-toggle {
   position: fixed;
   bottom: 20px;
@@ -29,8 +30,6 @@ body {
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   cursor: pointer;
 }
-
-/* Hộp chat */
 #chat-box {
   position: fixed;
   bottom: 90px;
@@ -46,8 +45,6 @@ body {
   z-index: 9999;
 }
 .hidden { display: none; }
-
-/* Header */
 #chat-header {
   background: #0084ff;
   color: white;
@@ -65,8 +62,6 @@ body {
   padding: 3px 7px;
   cursor: pointer;
 }
-
-/* Danh sách user */
 #users-container {
   height: 70px;
   overflow-y: auto;
@@ -81,8 +76,6 @@ body {
   border-radius: 4px;
 }
 #users li:hover { background: #e6f0ff; }
-
-/* Chat messages */
 .chat-area {
   flex: 1;
   display: flex;
@@ -110,8 +103,6 @@ body {
   background: white;
   border: 1px solid #ddd;
 }
-
-/* Input + Gửi */
 #msg-form {
   display: flex;
   align-items: center;
@@ -128,8 +119,6 @@ body {
   font-size: 14px;
   outline: none;
   height: 34px;
-  overflow-y: auto;
-  resize: none;
 }
 #msg-form button {
   border: none;
@@ -140,15 +129,9 @@ body {
   cursor: pointer;
   flex-shrink: 0;
 }
-#msg-form button:hover {
-  background: #006fe6;
-}
-
-/* Cuộn mượt */
+#msg-form button:hover { background: #006fe6; }
 #chat-messages::-webkit-scrollbar,
-#users-container::-webkit-scrollbar {
-  width: 6px;
-}
+#users-container::-webkit-scrollbar { width: 6px; }
 #chat-messages::-webkit-scrollbar-thumb,
 #users-container::-webkit-scrollbar-thumb {
   background: #ccc;
@@ -169,21 +152,28 @@ body {
   <div class="chat-area">
     <div id="chat-messages"></div>
     <form id="msg-form">
-      <input id="msg-input" placeholder="Nhập tin nhắn..." autocomplete="off"/>
+      <input id="msg-input" placeholder="Nhập tin nhắn..." autocomplete="off" />
       <button type="submit">Gửi</button>
     </form>
   </div>
 </div>
 
 <script>
-const socket = io();
+// ⚙️ Thay link này bằng domain Render thật của bạn
+const socket = io("https://mini-zalo-chat.onrender.com", {
+  transports: ["websocket"]
+});
+
+// Debug để chắc chắn socket kết nối
+socket.on("connect", () => console.log("✅ Connected:", socket.id));
+socket.on("connect_error", err => console.error("❌ Socket error:", err));
+
 let username = prompt("Nhập tên của bạn:") || "User" + Math.floor(Math.random() * 1000);
 document.getElementById("me-name").textContent = username;
 
 // Gửi sự kiện join
 socket.emit("join", username);
 
-// Gửi tin nhắn
 const form = document.getElementById("msg-form");
 const input = document.getElementById("msg-input");
 const messages = document.getElementById("chat-messages");
