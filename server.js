@@ -1,12 +1,10 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
-
-// ⚙️ Cho phép Socket.IO hoạt động trên Render
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -14,38 +12,37 @@ const io = new Server(server, {
   }
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve frontend
+app.use(express.static(path.join(__dirname, "public")));
 
-const users = new Map(); // socket.id -> username
+const users = {}; // { username: socket.id }
 
-io.on('connection', (socket) => {
-  console.log('✅ New connection:', socket.id);
+io.on("connection", (socket) => {
+  console.log("✅ New connection:", socket.id);
 
-  // Khi client join
-  socket.on('join', (username) => {
-    users.set(socket.id, username);
-    console.log('🟢 User joined:', username);
-    io.emit('userList', Array.from(users.values()));
+  // Khi người dùng đăng ký tên
+  socket.on("register", (username) => {
+    socket.username = username;
+    users[username] = socket.id;
+    console.log(`🟢 ${username} connected`);
+    io.emit("users", Object.keys(users)); // gửi danh sách người dùng
   });
 
-  // Khi client đổi tên
-  socket.on('rename', (newName) => {
-    users.set(socket.id, newName);
-    io.emit('userList', Array.from(users.values()));
+  // Nhận tin nhắn riêng
+  socket.on("private message", ({ to, message }) => {
+    const targetId = users[to];
+    if (targetId) {
+      io.to(targetId).emit("private message", { from: socket.username, message });
+    }
   });
 
-  // Khi client gửi tin nhắn
-  socket.on('chatMessage', (msg) => {
-    const user = users.get(socket.id) || 'Ẩn danh';
-    io.emit('chatMessage', { user, msg });
-  });
-
-  // Khi client rời khỏi
-  socket.on('disconnect', () => {
-    const user = users.get(socket.id);
-    users.delete(socket.id);
-    console.log('❌ User disconnected:', user);
-    io.emit('userList', Array.from(users.values()));
+  // Khi ngắt kết nối
+  socket.on("disconnect", () => {
+    if (socket.username) {
+      console.log(`🔴 ${socket.username} disconnected`);
+      delete users[socket.username];
+      io.emit("users", Object.keys(users));
+    }
   });
 });
 
