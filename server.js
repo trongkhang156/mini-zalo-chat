@@ -5,7 +5,14 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+// 🟢 Thêm phần CORS cho Render
+const io = new Server(server, {
+  cors: {
+    origin: "*", // hoặc domain cụ thể "https://mini-zalo-chat.onrender.com"
+    methods: ["GET", "POST"]
+  }
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -27,7 +34,6 @@ io.on('connection', (socket) => {
     if (users[to]) {
       io.to(users[to]).emit('private message', { from, to, message, ts });
     }
-    // Gửi lại cho chính mình
     socket.emit('private message', { from, to, message, ts });
   });
 
@@ -40,5 +46,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
