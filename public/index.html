@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mini Zalo Chat</title>
 
-<!-- 🔧 Dùng socket từ domain Render -->
+<!-- 🔧 Socket.IO script từ server Render -->
 <script src="https://mini-zalo-chat.onrender.com/socket.io/socket.io.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -14,29 +14,37 @@ body {
   font-family: Arial, sans-serif;
   background: #f0f2f5;
   margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
+
+/* Nút mở chat */
 #chat-toggle {
   position: fixed;
   bottom: 20px;
   right: 20px;
   background: #0084ff;
   color: white;
-  font-size: 24px;
-  width: 55px;
-  height: 55px;
-  line-height: 55px;
+  font-size: 26px;
+  width: 60px;
+  height: 60px;
+  line-height: 60px;
   text-align: center;
   border-radius: 50%;
   box-shadow: 0 4px 10px rgba(0,0,0,0.3);
   cursor: pointer;
+  z-index: 10000;
 }
+
+/* Khung chat */
 #chat-box {
   position: fixed;
   bottom: 90px;
-  right: 20px;
-  width: 300px;
-  height: 420px;
-  background: white;
+  right: 15px;
+  width: 90%;
+  max-width: 320px;
+  height: 450px;
+  background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.3);
   display: flex;
@@ -45,6 +53,8 @@ body {
   z-index: 9999;
 }
 .hidden { display: none; }
+
+/* Header */
 #chat-header {
   background: #0084ff;
   color: white;
@@ -62,6 +72,8 @@ body {
   padding: 3px 7px;
   cursor: pointer;
 }
+
+/* User list */
 #users-container {
   height: 70px;
   overflow-y: auto;
@@ -76,6 +88,8 @@ body {
   border-radius: 4px;
 }
 #users li:hover { background: #e6f0ff; }
+
+/* Chat messages */
 .chat-area {
   flex: 1;
   display: flex;
@@ -103,6 +117,8 @@ body {
   background: white;
   border: 1px solid #ddd;
 }
+
+/* Input + Gửi */
 #msg-form {
   display: flex;
   align-items: center;
@@ -130,6 +146,7 @@ body {
   flex-shrink: 0;
 }
 #msg-form button:hover { background: #006fe6; }
+
 #chat-messages::-webkit-scrollbar,
 #users-container::-webkit-scrollbar { width: 6px; }
 #chat-messages::-webkit-scrollbar-thumb,
@@ -141,7 +158,10 @@ body {
 </head>
 <body>
 
+<!-- 🔘 Nút mở chat -->
 <div id="chat-toggle">💬</div>
+
+<!-- 💬 Hộp chat -->
 <div id="chat-box" class="hidden">
   <div id="chat-header">
     <span id="me-name"></span>
@@ -159,34 +179,35 @@ body {
 </div>
 
 <script>
-// ⚙️ Thay link này bằng domain Render thật của bạn
+/* ⚙️ Kết nối tới Socket.IO của server Render */
 const socket = io("https://mini-zalo-chat.onrender.com", {
-  transports: ["websocket"]
+  transports: ["websocket", "polling"]
 });
 
-// Debug để chắc chắn socket kết nối
 socket.on("connect", () => console.log("✅ Connected:", socket.id));
 socket.on("connect_error", err => console.error("❌ Socket error:", err));
 
+/* 🔹 Đặt tên người dùng */
 let username = prompt("Nhập tên của bạn:") || "User" + Math.floor(Math.random() * 1000);
 document.getElementById("me-name").textContent = username;
 
-// Gửi sự kiện join
+/* Gửi sự kiện join */
 socket.emit("join", username);
 
 const form = document.getElementById("msg-form");
 const input = document.getElementById("msg-input");
 const messages = document.getElementById("chat-messages");
 
+/* 📨 Gửi tin nhắn */
 form.addEventListener("submit", (e) => {
   e.preventDefault();
-  if (input.value.trim()) {
-    socket.emit("chatMessage", input.value);
-    input.value = "";
-  }
+  const msg = input.value.trim();
+  if (!msg) return;
+  socket.emit("chatMessage", msg);
+  input.value = "";
 });
 
-// Nhận tin nhắn
+/* 📥 Nhận tin nhắn */
 socket.on("chatMessage", (data) => {
   const div = document.createElement("div");
   div.className = data.user === username ? "self" : "other";
@@ -195,7 +216,7 @@ socket.on("chatMessage", (data) => {
   messages.scrollTop = messages.scrollHeight;
 });
 
-// Danh sách người dùng
+/* 👥 Danh sách người dùng */
 socket.on("userList", (users) => {
   const ul = document.getElementById("users");
   ul.innerHTML = "";
@@ -206,7 +227,7 @@ socket.on("userList", (users) => {
   });
 });
 
-// Đổi tên
+/* ✏️ Đổi tên */
 document.getElementById("rename-btn").addEventListener("click", () => {
   Swal.fire({
     title: "Đổi tên",
@@ -223,7 +244,7 @@ document.getElementById("rename-btn").addEventListener("click", () => {
   });
 });
 
-// Ẩn/hiện khung chat
+/* 👁 Ẩn / Hiện hộp chat */
 document.getElementById("chat-toggle").addEventListener("click", () => {
   document.getElementById("chat-box").classList.toggle("hidden");
 });
@@ -231,5 +252,6 @@ document.getElementById("chat-close").addEventListener("click", () => {
   document.getElementById("chat-box").classList.add("hidden");
 });
 </script>
+
 </body>
 </html>
