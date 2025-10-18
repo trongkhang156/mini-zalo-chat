@@ -6,42 +6,46 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// 🟢 Thêm phần CORS cho Render
+// ⚙️ Cho phép Socket.IO hoạt động trên Render
 const io = new Server(server, {
   cors: {
-    origin: "*", // hoặc domain cụ thể "https://mini-zalo-chat.onrender.com"
+    origin: "*",
     methods: ["GET", "POST"]
   }
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Mapping user -> socket
-const users = {};
+const users = new Map(); // socket.id -> username
 
 io.on('connection', (socket) => {
   console.log('✅ New connection:', socket.id);
 
-  socket.on('register', (username) => {
-    users[username] = socket.id;
-    socket.username = username;
-    io.emit('users', Object.keys(users));
+  // Khi client join
+  socket.on('join', (username) => {
+    users.set(socket.id, username);
+    console.log('🟢 User joined:', username);
+    io.emit('userList', Array.from(users.values()));
   });
 
-  socket.on('private message', ({ to, message }) => {
-    const from = socket.username;
-    const ts = Date.now();
-    if (users[to]) {
-      io.to(users[to]).emit('private message', { from, to, message, ts });
-    }
-    socket.emit('private message', { from, to, message, ts });
+  // Khi client đổi tên
+  socket.on('rename', (newName) => {
+    users.set(socket.id, newName);
+    io.emit('userList', Array.from(users.values()));
   });
 
+  // Khi client gửi tin nhắn
+  socket.on('chatMessage', (msg) => {
+    const user = users.get(socket.id) || 'Ẩn danh';
+    io.emit('chatMessage', { user, msg });
+  });
+
+  // Khi client rời khỏi
   socket.on('disconnect', () => {
-    if (socket.username) {
-      delete users[socket.username];
-      io.emit('users', Object.keys(users));
-    }
+    const user = users.get(socket.id);
+    users.delete(socket.id);
+    console.log('❌ User disconnected:', user);
+    io.emit('userList', Array.from(users.values()));
   });
 });
 
