@@ -1,38 +1,44 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mini Zalo Chat</title>
 
-<!-- Socket.IO client -->
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-* {
-  box-sizing: border-box;
-  font-family: "Segoe UI", Arial, sans-serif;
+:root {
+  --blue: #0084ff;
+  --light: #f5f6f8;
+  --self: #dcf8c6;
+  --other: #fff;
 }
+
+* { box-sizing: border-box; }
 body {
   margin: 0;
-  background: #f0f2f5;
-  height: 100vh;
+  background: var(--light);
+  font-family: "Segoe UI", Arial, sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 100vh;
 }
+
 .chat-container {
   width: 100%;
-  max-width: 450px;
+  max-width: 420px;
   height: 90vh;
-  background: white;
+  background: #fff;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   overflow: hidden;
 }
+
 @media (max-width: 600px) {
   .chat-container {
     width: 100%;
@@ -40,8 +46,9 @@ body {
     border-radius: 0;
   }
 }
+
 #chat-header {
-  background: #0084ff;
+  background: var(--blue);
   color: white;
   padding: 10px 15px;
   display: flex;
@@ -49,14 +56,16 @@ body {
   align-items: center;
   font-size: 16px;
 }
+
 #users-list {
   background: #f8f9fa;
   border-bottom: 1px solid #ddd;
-  padding: 5px 10px;
+  padding: 6px 10px;
   display: flex;
   overflow-x: auto;
   gap: 8px;
 }
+
 #users-list div {
   background: #e7f0ff;
   padding: 5px 10px;
@@ -64,10 +73,12 @@ body {
   cursor: pointer;
   white-space: nowrap;
 }
+
 #users-list .active {
-  background: #0084ff;
+  background: var(--blue);
   color: white;
 }
+
 #messages {
   flex: 1;
   overflow-y: auto;
@@ -76,6 +87,7 @@ body {
   display: flex;
   flex-direction: column;
 }
+
 .message {
   max-width: 75%;
   padding: 8px 12px;
@@ -83,21 +95,25 @@ body {
   margin-bottom: 8px;
   word-wrap: break-word;
 }
+
 .message.self {
-  background: #dcf8c6;
+  background: var(--self);
   align-self: flex-end;
 }
+
 .message.other {
-  background: white;
+  background: var(--other);
   border: 1px solid #ddd;
   align-self: flex-start;
 }
+
 #msg-form {
   display: flex;
   padding: 8px;
   border-top: 1px solid #ddd;
   background: #fff;
 }
+
 #msg-input {
   flex: 1;
   padding: 10px;
@@ -105,15 +121,17 @@ body {
   border-radius: 20px;
   outline: none;
 }
+
 #msg-form button {
   border: none;
-  background: #0084ff;
+  background: var(--blue);
   color: white;
   border-radius: 20px;
   padding: 10px 15px;
   margin-left: 6px;
   cursor: pointer;
 }
+
 #msg-form button:hover {
   background: #006fe6;
 }
@@ -126,8 +144,10 @@ body {
     <span id="me-name">Mini Zalo</span>
     <button id="rename-btn" style="border:none;background:rgba(255,255,255,0.3);color:white;border-radius:6px;padding:3px 8px;">Đổi tên</button>
   </div>
+
   <div id="users-list"></div>
   <div id="messages"></div>
+
   <form id="msg-form">
     <input id="msg-input" placeholder="Nhập tin nhắn..." autocomplete="off" />
     <button type="submit">Gửi</button>
@@ -136,17 +156,16 @@ body {
 
 <script>
 const socket = io();
-
-// --- Đăng ký username ---
 let username = localStorage.getItem("chat_username");
+
 if (!username) {
   username = prompt("Nhập tên của bạn:") || "User" + Math.floor(Math.random() * 1000);
   localStorage.setItem("chat_username", username);
 }
+
 document.getElementById("me-name").textContent = username;
 socket.emit("register", username);
 
-// --- Biến ---
 let currentChat = null;
 const usersList = document.getElementById("users-list");
 const messages = document.getElementById("messages");
@@ -199,7 +218,7 @@ function addMessage(data, type) {
   messages.scrollTop = messages.scrollHeight;
 }
 
-// --- Đổi tên người dùng ---
+// --- Đổi tên ---
 document.getElementById("rename-btn").addEventListener("click", () => {
   Swal.fire({
     title: "Đổi tên",
@@ -219,6 +238,5 @@ document.getElementById("rename-btn").addEventListener("click", () => {
   });
 });
 </script>
-
 </body>
 </html>
