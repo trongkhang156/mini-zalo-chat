@@ -21,23 +21,24 @@ body {
   margin: 0;
   background: var(--light);
   font-family: "Segoe UI", Arial, sans-serif;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   height: 100vh;
 }
 
 .chat-container {
-  width: 100%;
-  max-width: 420px;
-  height: 90vh;
+  width: 320px;
+  height: 480px;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
   background: #fff;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   overflow: hidden;
+  z-index: 1000;
 }
+
 
 @media (max-width: 600px) {
   .chat-container {
