@@ -7,181 +7,265 @@
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
+    :root {
+      --blue: #0078ff;
+      --light: #f1f1f1;
+      --white: #fff;
+    }
+    * { box-sizing: border-box; }
     body {
       font-family: "Segoe UI", sans-serif;
-      background: #f1f1f1;
+      background: transparent;
       margin: 0;
-      display: flex;
       height: 100vh;
     }
-    #user-list {
-      width: 250px;
-      background: white;
-      border-right: 1px solid #ccc;
-      overflow-y: auto;
+
+    .chat-box {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 350px;
+      height: 500px;
+      background: var(--white);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+      z-index: 9999;
+      border: 1px solid #ddd;
+      transition: all 0.3s ease;
     }
-    #user-list h3 {
-      background: #0078ff;
+
+    .chat-header {
+      background: var(--blue);
       color: white;
-      margin: 0;
-      padding: 10px;
-      text-align: center;
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    #users {
-      list-style: none;
+
+    .chat-header h3 {
       margin: 0;
-      padding: 0;
+      font-size: 16px;
+      font-weight: 600;
     }
-    #users li {
-      padding: 10px;
+
+    .chat-users {
+      background: #f6f7fb;
+      border-bottom: 1px solid #ddd;
+      padding: 5px 10px;
+      display: flex;
+      overflow-x: auto;
+      gap: 8px;
+    }
+
+    .chat-users div {
+      padding: 6px 12px;
+      background: #e7f0ff;
+      border-radius: 20px;
       cursor: pointer;
-      border-bottom: 1px solid #eee;
+      font-size: 14px;
+      white-space: nowrap;
     }
-    #users li:hover {
-      background: #e6f0ff;
+
+    .chat-users .active {
+      background: var(--blue);
+      color: white;
     }
-    #chat-area {
+
+    .chat-messages {
       flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background: #f9fafb;
       display: flex;
       flex-direction: column;
     }
-    #chat-box {
-      flex: 1;
-      padding: 10px;
-      overflow-y: auto;
-      background: #fafafa;
+
+    .msg {
+      max-width: 70%;
+      padding: 8px 12px;
+      border-radius: 14px;
+      margin-bottom: 8px;
+      word-wrap: break-word;
+      font-size: 14px;
     }
-    #chat-input {
+
+    .msg.self {
+      align-self: flex-end;
+      background: #dcf8c6;
+    }
+
+    .msg.other {
+      align-self: flex-start;
+      background: #fff;
+      border: 1px solid #ddd;
+    }
+
+    .chat-input {
       display: flex;
-      border-top: 1px solid #ccc;
+      border-top: 1px solid #ddd;
+      padding: 6px;
       background: white;
     }
-    #chat-input input {
+
+    .chat-input input {
       flex: 1;
-      padding: 10px;
-      border: none;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      padding: 8px 12px;
       outline: none;
+      font-size: 14px;
     }
-    #chat-input button {
-      padding: 10px 20px;
-      border: none;
-      background: #0078ff;
+
+    .chat-input button {
+      margin-left: 6px;
+      background: var(--blue);
       color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 14px;
       cursor: pointer;
+      font-size: 14px;
     }
-    .msg {
-      margin: 5px 0;
+
+    .chat-input button:hover {
+      background: #005fd4;
     }
-    .msg strong {
-      color: #0078ff;
-    }
-    .system {
-      color: gray;
-      font-style: italic;
-      text-align: center;
+
+    @media (max-width: 600px) {
+      .chat-box {
+        width: 100%;
+        height: 100vh;
+        bottom: 0;
+        right: 0;
+        border-radius: 0;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="user-list">
-    <h3>👥 Người dùng</h3>
-    <ul id="users"></ul>
+
+<div class="chat-box">
+  <div class="chat-header">
+    <h3 id="me-name">Mini Zalo</h3>
+    <button id="rename-btn" style="background:rgba(255,255,255,0.2);color:white;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;">Đổi tên</button>
   </div>
 
-  <div id="chat-area">
-    <div id="chat-box"></div>
-    <div id="chat-input">
-      <input id="message" placeholder="Nhập tin nhắn..." />
-      <button id="sendBtn">Gửi</button>
-    </div>
+  <div class="chat-users" id="users-list"></div>
+  <div class="chat-messages" id="messages"></div>
+
+  <div class="chat-input">
+    <input id="msg-input" placeholder="Nhập tin nhắn..." />
+    <button id="send-btn">Gửi</button>
   </div>
+</div>
 
-  <script>
-    // 🔹 Kết nối tới server
-    const socket = io();
-    let username = "";
-    let selectedUser = null;
+<script>
+const socket = io();
+let username = localStorage.getItem("chat_username");
+let currentChat = null;
 
-    // 🔹 Đăng ký Service Worker (để hiển thị thông báo nền)
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js").then(() => {
-        console.log("✅ Service Worker đã đăng ký");
-      });
-    }
+// 🔹 Service Worker + Thông báo Desktop
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+}
+Notification.requestPermission();
 
-    // 🔹 Xin quyền gửi thông báo
-    Notification.requestPermission().then((perm) => {
-      if (perm !== "granted") {
-        Swal.fire("⚠️ Hãy bật quyền thông báo để nhận tin như Zalo!");
-      }
-    });
+// 🔹 Lấy tên
+if (!username) {
+  username = prompt("Nhập tên của bạn:") || "User" + Math.floor(Math.random() * 1000);
+  localStorage.setItem("chat_username", username);
+}
+document.getElementById("me-name").textContent = username;
+socket.emit("register", username);
 
-    // 🔹 Nhập tên
-    Swal.fire({
-      title: "Nhập tên của bạn",
-      input: "text",
-      inputPlaceholder: "VD: Tôi bị ngu 1234",
-      allowOutsideClick: false,
-      confirmButtonText: "Vào chat"
-    }).then((result) => {
-      username = result.value.trim();
-      if (!username) location.reload();
-      socket.emit("register", username);
-    });
-
-    // 🔹 Danh sách người dùng
-    socket.on("users", (list) => {
-      const usersEl = document.getElementById("users");
-      usersEl.innerHTML = "";
-      list.forEach((u) => {
-        if (u === username) return;
-        const li = document.createElement("li");
-        li.textContent = u;
-        li.onclick = () => {
-          selectedUser = u;
-          document.getElementById("chat-box").innerHTML += `<div class="system">💬 Đang chat với <b>${u}</b></div>`;
-        };
-        usersEl.appendChild(li);
-      });
-    });
-
-    // 🔹 Gửi tin nhắn
-    document.getElementById("sendBtn").onclick = () => {
-      const msg = document.getElementById("message").value.trim();
-      if (!msg || !selectedUser) return;
-      socket.emit("private message", { to: selectedUser, message: msg });
-      addMessage(username, msg);
-      document.getElementById("message").value = "";
+// 🔹 Danh sách người dùng
+socket.on("users", (users) => {
+  const usersList = document.getElementById("users-list");
+  usersList.innerHTML = "";
+  users.forEach(u => {
+    if (u === username) return;
+    const div = document.createElement("div");
+    div.textContent = u;
+    if (u === currentChat) div.classList.add("active");
+    div.onclick = () => {
+      currentChat = u;
+      document.querySelectorAll("#users-list div").forEach(el => el.classList.remove("active"));
+      div.classList.add("active");
+      document.getElementById("messages").innerHTML = "";
     };
+    usersList.appendChild(div);
+  });
+});
 
-    // 🔹 Nhận tin nhắn
-    socket.on("private message", ({ from, message }) => {
-      addMessage(from, message);
-      showDesktopNotification(from, message);
+// 🔹 Gửi tin nhắn
+document.getElementById("send-btn").addEventListener("click", sendMessage);
+document.getElementById("msg-input").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
+
+function sendMessage() {
+  const msgInput = document.getElementById("msg-input");
+  const msg = msgInput.value.trim();
+  if (!msg || !currentChat) {
+    Swal.fire("Chưa chọn người để chat!", "", "info");
+    return;
+  }
+  socket.emit("private message", { to: currentChat, message: msg });
+  addMessage("Tôi", msg, "self");
+  msgInput.value = "";
+}
+
+// 🔹 Nhận tin nhắn
+socket.on("private message", ({ from, message }) => {
+  addMessage(from, message, "other");
+  showNotification(from, message);
+});
+
+// 🔹 Hiển thị tin nhắn
+function addMessage(from, message, type) {
+  const messages = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.className = `msg ${type}`;
+  div.textContent = `${from}: ${message}`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+// 🔹 Thông báo desktop
+function showNotification(from, message) {
+  if (Notification.permission === "granted") {
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.showNotification(`💬 Tin nhắn mới từ ${from}`, {
+        body: message,
+        icon: "https://cdn-icons-png.flaticon.com/512/906/906349.png",
+      });
     });
+  }
+}
 
-    // 🔹 Thêm tin nhắn
-    function addMessage(from, message) {
-      const chatBox = document.getElementById("chat-box");
-      const div = document.createElement("div");
-      div.classList.add("msg");
-      div.innerHTML = `<strong>${from}:</strong> ${message}`;
-      chatBox.appendChild(div);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    // 🔹 Hiển thị thông báo desktop (Zalo-style)
-    function showDesktopNotification(from, message) {
-      if (Notification.permission === "granted") {
-        navigator.serviceWorker.ready.then((reg) => {
-          reg.showNotification(`💬 Tin nhắn mới từ ${from}`, {
-            body: message,
-            icon: "https://cdn-icons-png.flaticon.com/512/906/906349.png",
-            badge: "https://cdn-icons-png.flaticon.com/512/906/906349.png",
-          });
-        });
+// 🔹 Đổi tên
+document.getElementById("rename-btn").addEventListener("click", () => {
+  Swal.fire({
+    title: "Đổi tên",
+    input: "text",
+    inputValue: username,
+    showCancelButton: true,
+    confirmButtonText: "OK"
+  }).then(res => {
+    if (res.value) {
+      username = res.value.trim();
+      if (username) {
+        localStorage.setItem("chat_username", username);
+        document.getElementById("me-name").textContent = username;
+        socket.emit("register", username);
       }
     }
-  </script>
+  });
+});
+</script>
 </body>
 </html>
