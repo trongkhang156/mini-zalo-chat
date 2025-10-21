@@ -1,9 +1,13 @@
 {
   "name": "mini-zalo-chat",
   "version": "1.0.0",
+  "description": "Mini Zalo Chat - Realtime chat using Socket.IO + Express",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.x"
   },
   "dependencies": {
     "express": "^4.19.2",
