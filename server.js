@@ -9,13 +9,13 @@ app.set("trust proxy", 1); // ✅ cần cho HTTPS trên Render
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "https://mini-zalo-chat.onrender.com", // ✅ chỉ định đúng domain
+    origin: "*", // ✅ Cho phép tất cả client (máy khác, điện thoại)
     methods: ["GET", "POST"]
   },
-  transports: ["websocket"]
+  transports: ["websocket", "polling"]
 });
 
-// Serve frontend (trong thư mục public)
+// Serve frontend
 app.use(express.static(path.join(__dirname, "public")));
 
 const users = {}; // { username: socket.id }
@@ -47,4 +47,4 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, "0.0.0.0", () => console.log(`🚀 Server running on port ${PORT}`));
