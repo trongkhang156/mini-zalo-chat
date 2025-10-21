@@ -46,17 +46,18 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  flex-shrink: 0;
 }
 
 /* Users list */
 #users-list {
-  background: #f8f9fa;
-  border-bottom: 1px solid #ddd;
-  padding: 6px 10px;
   display: flex;
   overflow-x: auto;
   gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #ddd;
+  background: #f8f9fa;
+  flex-shrink: 0; /* giữ chiều cao */
 }
 
 #users-list div {
@@ -75,23 +76,10 @@ body {
 
 /* Messages */
 #messages {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
   padding: 10px;
-  margin-bottom: env(safe-area-inset-bottom, 0);
 }
-
-.msg {
-  max-width: 75%;
-  padding: 6px 10px;
-  border-radius: 12px;
-  margin-bottom: 6px;
-  word-wrap: break-word;
-  font-size: 14px;
-}
-
-.msg.self { background: var(--self); align-self: flex-end; }
-.msg.other { background: var(--other); border:1px solid #ddd; align-self: flex-start; }
 
 /* Input form */
 #msg-form {
@@ -101,6 +89,7 @@ body {
   background: #fff;
   position: sticky;
   bottom: 0;
+  z-index: 100;
 }
 
 #msg-input {
@@ -121,7 +110,19 @@ body {
   cursor: pointer;
 }
 
-/* Responsive mobile */
+/* Message bubble */
+.msg {
+  max-width: 75%;
+  padding: 6px 10px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  word-wrap: break-word;
+  font-size: 14px;
+}
+.msg.self { background: var(--self); align-self: flex-end; }
+.msg.other { background: var(--other); align-self: flex-start; border: 1px solid #ddd; }
+
+/* Mobile responsive */
 @media (max-width: 600px) {
   .chat-container {
     width: 90vw;
@@ -130,6 +131,15 @@ body {
     right: 5vw;
     border-radius: 12px;
   }
+
+  #users-list {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  #messages { padding: 6px; }
+
+  #msg-input { padding: 6px; }
 }
 </style>
 </head>
@@ -164,15 +174,15 @@ Notification.requestPermission();
 
 socket.emit("register", username);
 
-// Update user list
+// Update users list
 socket.on("users", users => {
   const list = document.getElementById("users-list");
   list.innerHTML = '';
   users.forEach(u => {
-    if (u === username) return;
+    if(u === username) return;
     const div = document.createElement("div");
     div.textContent = u;
-    if (u === currentChat) div.classList.add("active");
+    if(u === currentChat) div.classList.add("active");
     div.onclick = () => {
       currentChat = u;
       document.querySelectorAll("#users-list div").forEach(el => el.classList.remove("active"));
@@ -186,7 +196,6 @@ socket.on("users", users => {
 // Send message
 const msgInput = document.getElementById("msg-input");
 const sendBtn = document.getElementById("send-btn");
-
 sendBtn.onclick = sendMessage;
 msgInput.addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey) {
@@ -203,6 +212,7 @@ function sendMessage() {
   msgInput.value = '';
 }
 
+// Receive message
 socket.on("private message", ({ from, message }) => {
   addMessage(from, message, "other");
   showNotification(from, message);
@@ -220,12 +230,15 @@ function addMessage(from, msg, type) {
 function showNotification(from, message) {
   if(Notification.permission === 'granted'){
     navigator.serviceWorker.ready.then(reg => {
-      reg.showNotification(`💬 Tin nhắn mới từ ${from}`, { body: message, icon: "https://cdn-icons-png.flaticon.com/512/906/906349.png" });
+      reg.showNotification(`💬 Tin nhắn mới từ ${from}`, {
+        body: message,
+        icon: "https://cdn-icons-png.flaticon.com/512/906/906349.png"
+      });
     });
   }
 }
 
-// Rename
+// Rename user
 document.getElementById("rename-btn").onclick = () => {
   Swal.fire({
     title: "Đổi tên",
