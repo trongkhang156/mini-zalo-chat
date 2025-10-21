@@ -39,7 +39,6 @@ body {
   z-index: 1000;
 }
 
-
 @media (max-width: 600px) {
   .chat-container {
     width: 100%;
@@ -73,6 +72,7 @@ body {
   border-radius: 20px;
   cursor: pointer;
   white-space: nowrap;
+  transition: 0.2s;
 }
 
 #users-list .active {
@@ -183,8 +183,7 @@ socket.on("users", (users) => {
     if (u === currentChat) userDiv.classList.add("active");
     userDiv.onclick = () => {
       currentChat = u;
-      document.querySelectorAll("#users-list div").forEach(el => el.classList.remove("active"));
-      userDiv.classList.add("active");
+      highlightUser(u);
       messages.innerHTML = "";
     };
     usersList.appendChild(userDiv);
@@ -200,13 +199,37 @@ msgForm.addEventListener("submit", (e) => {
     return;
   }
   socket.emit("private message", { to: currentChat, message: msg });
-  addMessage({ from: username, to: currentChat, message: msg }, "self");
+  addMessage({ from: username, message: msg }, "self");
   msgInput.value = "";
 });
 
 // --- Nhận tin nhắn ---
 socket.on("private message", (data) => {
   const { from, message } = data;
+
+  // Nếu chưa chọn người chat, tự động mở với người gửi
+  if (!currentChat) {
+    currentChat = from;
+    highlightUser(from);
+  }
+
+  // Nếu người gửi chưa có trong danh sách, thêm vào
+  if (!Array.from(usersList.children).some(el => el.textContent === from)) {
+    const userDiv = document.createElement("div");
+    userDiv.textContent = from;
+    userDiv.onclick = () => {
+      currentChat = from;
+      highlightUser(from);
+      messages.innerHTML = "";
+    };
+    usersList.appendChild(userDiv);
+  }
+
+  // Tô vàng người gửi tin nếu đang chat với người khác
+  if (from !== currentChat) {
+    highlightUser(from, true);
+  }
+
   addMessage({ from, message }, from === username ? "self" : "other");
 });
 
@@ -238,6 +261,17 @@ document.getElementById("rename-btn").addEventListener("click", () => {
     }
   });
 });
+
+// --- Tô sáng người đang chat ---
+function highlightUser(name, notify = false) {
+  document.querySelectorAll("#users-list div").forEach(el => {
+    el.classList.toggle("active", el.textContent === name);
+    if (notify && el.textContent === name) {
+      el.style.background = "#ffcc00";
+      setTimeout(() => el.style.background = "", 2000);
+    }
+  });
+}
 </script>
 </body>
 </html>
