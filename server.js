@@ -51,11 +51,7 @@ io.on("connection", (socket) => {
       console.log(`⚠️ Không tìm thấy người nhận: ${to}`);
     }
 
-    // ✅ Gửi lại cho chính người gửi (để hiển thị trên UI của họ)
-    io.to(socket.id).emit("private message", {
-      from: socket.username,
-      message
-    });
+  
   });
 
   // Khi user ngắt kết nối
