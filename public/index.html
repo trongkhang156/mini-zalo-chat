@@ -302,7 +302,9 @@ document.getElementById("rename-btn").onclick = () => {
       username = res.value.trim();
       localStorage.setItem("chat_username", username);
       document.getElementById("me-name").textContent = username;
-      socket.emit("register", username);
+      socket.disconnect();
+socket.connect();
+socket.emit("register", username);
     }
   });
 };
